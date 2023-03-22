@@ -1,0 +1,10 @@
+[package]
+name = "cargo-sermver-bumper"
+version = "0.0.0"
+publish = false
+description = "A cargo-plugin for automatically bumping the version in Cargo.toml based at conventional commits & Semver"
+authors = ["cyphersnake <cyphersnake@pm.me>"]
+keywords = ["semver", "conventionalcommits", "cargo"]
+edition = "2021"
+
+[dependencies]
