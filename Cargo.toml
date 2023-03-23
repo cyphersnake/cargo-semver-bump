@@ -1,10 +1,26 @@
 [package]
-name = "cargo-sermver-bumper"
-version = "0.0.0"
-publish = false
-description = "A cargo-plugin for automatically bumping the version in Cargo.toml based at conventional commits & Semver"
-authors = ["cyphersnake <cyphersnake@pm.me>"]
-keywords = ["semver", "conventionalcommits", "cargo"]
+name = "cargo-semver-up"
 edition = "2021"
+version = "0.1.0"
+authors = ["cyphersnake <cyphersnake@pm.me>"]
+description = "A cargo-plugin for automatically bumping the version in Cargo.toml based at conventional commits & semver policy"
+keywords = [
+    "semver",
+    "conventionalcommits",
+    "cargo",
+    "cli",
+]
+publish = false
 
 [dependencies]
+cargo_toml = "0.15.2"
+conventional-commits-parser = "0.1.1"
+env_logger = "0.10.0"
+git2 = "0.16.1"
+log = "0.4.17"
+semver = "1.0.17"
+some-to-err = "0.2.0"
+strum = "0.24.1"
+strum_macros = "0.24.3"
+thiserror = "1.0.40"
+toml = "0.7.3"
