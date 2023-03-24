@@ -7,13 +7,9 @@ use semver::Version;
 use some_to_err::ErrOr;
 
 mod conventional_commit;
-use conventional_commit::{ConventionalCommit, ConventionalCommitType};
+mod version_update_handler;
 
-#[derive(Debug)]
-enum ProcessResult {
-    Patch { new: Version },
-    ManualChanged { previous: Version, current: Version },
-}
+use version_update_handler::{ProcessResult, VersionUpdateHandler, VersionUpdateTooWeak};
 
 #[derive(Debug, thiserror::Error)]
 enum Error {
@@ -41,71 +37,6 @@ enum Error {
     CommitNotConvential(String),
     #[error("TODO")]
     LostVersionAtCargoToml,
-}
-
-struct VersionUpdateTooWeak {
-    expected_at_least: Version,
-    actual: Version,
-}
-
-#[derive(Debug)]
-pub struct Context<'r> {
-    previous: Version,
-    current: Version,
-    commit: ConventionalCommit<'r>,
-}
-
-impl<'r> Context<'r> {
-    fn get_next_version(self) -> Result<ProcessResult, VersionUpdateTooWeak> {
-        let mut candidate = self.previous.clone();
-
-        let type_ = ConventionalCommitType::from(&self.commit);
-        trace!("Type of commit: {type_:?}");
-
-        let new_candidate = match type_ {
-            _ if self.commit.is_breaking_change && candidate.major != 0 => {
-                trace!("Breaking Change - Update Major");
-                Version::new(candidate.major + 1, 0, 0)
-            }
-            ConventionalCommitType::Fix => {
-                trace!("Fix without breaking change, update batch");
-                candidate.patch += 1;
-                candidate
-            }
-            ConventionalCommitType::Feat => {
-                candidate.minor += 1;
-                trace!("New feature, update minor version to {}", candidate.minor);
-                candidate.patch = 0;
-                candidate
-            }
-            type_ => {
-                trace!("Type commit {type_:?}, no update version needed");
-                candidate
-            }
-        };
-
-        let is_manual_changed = self.current != self.previous;
-        if is_manual_changed {
-            trace!("Version was manual changed");
-            if self.current < new_candidate {
-                error!("New version ({}) updated not enough", self.current);
-                Err(VersionUpdateTooWeak {
-                    expected_at_least: new_candidate,
-                    actual: self.current,
-                })
-            } else {
-                trace!("Version {} updated enough", self.current);
-                Ok(ProcessResult::ManualChanged {
-                    previous: self.previous,
-                    current: self.current,
-                })
-            }
-        } else {
-            let patch = ProcessResult::Patch { new: new_candidate };
-            trace!("{patch:?} needed");
-            Ok(patch)
-        }
-    }
 }
 
 fn main() -> Result<(), Error> {
@@ -145,7 +76,7 @@ fn main() -> Result<(), Error> {
     let mut manifest = Manifest::from_path(&cargo_toml_path)?;
     let current = Version::parse(manifest.package().version())?;
 
-    let ctx = Context {
+    let ctx = VersionUpdateHandler {
         current,
         previous: previous_commit_manifest_version,
         commit: conventional_commits_parser::parse_commit_msg(
