@@ -1,47 +1,13 @@
-use std::{
-    fs, io,
-    ops::Not,
-    str::{self, FromStr},
-};
+use std::{fs, io, ops::Not, str};
 
 use cargo_toml::{Inheritable, Manifest};
-use conventional_commits_parser::Commit as ConventionalCommit;
 use git2::Repository;
 use log::*;
 use semver::Version;
 use some_to_err::ErrOr;
 
-#[derive(Debug, PartialEq, Eq, Clone, strum_macros::EnumString)]
-#[strum(serialize_all = "snake_case")]
-enum ConventionalCommitType {
-    Build,
-    Chore,
-    Ci,
-    Docs,
-    Feat,
-    Fix,
-    Perf,
-    Refactor,
-    Revert,
-    Style,
-    Test,
-    #[strum(disabled)]
-    Custom(String),
-}
-
-impl ConventionalCommitType {
-    pub fn new(ty_: &str) -> Self {
-        match Self::from_str(ty_) {
-            Ok(type_) => type_,
-            Err(strum::ParseError::VariantNotFound) => Self::Custom(ty_.to_owned()),
-        }
-    }
-}
-impl<'r> From<&ConventionalCommit<'r>> for ConventionalCommitType {
-    fn from(value: &ConventionalCommit) -> Self {
-        Self::new(value.ty)
-    }
-}
+mod conventional_commit;
+use conventional_commit::{ConventionalCommit, ConventionalCommitType};
 
 #[derive(Debug)]
 enum ProcessResult {
