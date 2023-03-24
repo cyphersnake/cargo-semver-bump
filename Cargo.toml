@@ -9,6 +9,7 @@ keywords = [
     "conventionalcommits",
     "cargo",
     "cli",
+    "git",
 ]
 publish = false
 
