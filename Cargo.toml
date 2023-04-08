@@ -1,7 +1,7 @@
 [package]
 name = "cargo-semver-up"
 edition = "2021"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["cyphersnake <cyphersnake@pm.me>"]
 description = "A cargo-plugin for automatically bumping the version in Cargo.toml based at conventional commits & semver policy"
 keywords = [

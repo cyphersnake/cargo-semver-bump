@@ -1,4 +1,4 @@
-use std::{fs, io, ops::Not, str};
+use std::{fs, io, ops::Not, process, str};
 
 use cargo_toml::{Inheritable, Manifest};
 use git2::Repository;
@@ -87,16 +87,29 @@ fn main() -> Result<(), Error> {
 
     match ctx.get_next_version() {
         Ok(ProcessResult::Patch { new }) => {
-            manifest.package.as_mut().ok_or(Error::LostVersionAtCargoToml)?.version = Inheritable::from(Some(new.to_string()));
+            manifest
+                .package
+                .as_mut()
+                .ok_or(Error::LostVersionAtCargoToml)?
+                .version = Inheritable::from(Some(new.to_string()));
             manifest.bin.clear();
 
             let manifest_new_content = toml::to_string_pretty(&manifest)?;
 
             let mut index = repo.index()?;
-            let cargo_toml_entry = index.get_path(cargo_toml_path_relative, 0).ok_or(Error::LostCargoToml)?;
+            let cargo_toml_entry = index
+                .get_path(cargo_toml_path_relative, 0)
+                .ok_or(Error::LostCargoToml)?;
             index.add_frombuffer(&cargo_toml_entry, manifest_new_content.as_bytes())?;
-            // TODO Add signature, if it was presented early
-            commit.amend(Some("HEAD"), None, None, None, None, Some(&repo.find_tree(index.write_tree()?)?))?;
+            // TODO Add cryptograph signature, if it was presented early
+            commit.amend(
+                Some("HEAD"),
+                None,
+                None,
+                None,
+                None,
+                Some(&repo.find_tree(index.write_tree()?)?),
+            )?;
 
             // TODO Modify only version, not full file
             fs::write(&cargo_toml_path, manifest_new_content)?;
@@ -106,11 +119,17 @@ fn main() -> Result<(), Error> {
 
             println!("Patched");
         }
-        Ok(ProcessResult::ManualChanged { previous, current }) => println!("Issue an INFO that the version has been changed manually and respects versioning rules: Previous: {previous}, Current: {current}"),
+        Ok(ProcessResult::ManualChanged { previous, current }) => {
+            println!("The version has been changed manually and respects versioning rules: Previous: {previous}, Current: {current}");
+            return Ok(());
+        }
         Err(VersionUpdateTooWeak {
             expected_at_least,
             actual,
-        }) => eprintln!("Issue a WARN that the version has been changed manually and does NOT comply with versioning rules: Actual: {actual}, Expected: >={expected_at_least}"),
+        }) => {
+            eprintln!("The version has been changed manually and does NOT comply with versioning rules: Actual: {actual}, Expected: >={expected_at_least}");
+            process::exit(1);
+        }
     };
 
     Ok(())
