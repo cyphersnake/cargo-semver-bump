@@ -95,8 +95,10 @@ fn main() -> Result<(), Error> {
             let mut index = repo.index()?;
             let cargo_toml_entry = index.get_path(cargo_toml_path_relative, 0).ok_or(Error::LostCargoToml)?;
             index.add_frombuffer(&cargo_toml_entry, manifest_new_content.as_bytes())?;
+            // TODO Add signature, if it was presented early
             commit.amend(Some("HEAD"), None, None, None, None, Some(&repo.find_tree(index.write_tree()?)?))?;
 
+            // TODO Modify only version, not full file
             fs::write(&cargo_toml_path, manifest_new_content)?;
 
             index.add_path(cargo_toml_path_relative)?;
